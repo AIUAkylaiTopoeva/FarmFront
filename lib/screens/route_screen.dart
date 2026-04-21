@@ -16,6 +16,8 @@ class _RouteScreenState extends State<RouteScreen> {
   bool _isLoading = true;
   String _error = '';
   String _selectedProfile = 'cheapest';
+  double _fuelPrice = 65;
+  double _fuelConsumption = 10;
 
   static const _green = Color(0xFF1C4A2A);
   static const _lightGreen = Color(0xFF81C784);
@@ -35,6 +37,8 @@ class _RouteScreenState extends State<RouteScreen> {
         widget.productIds,
         _userLat,
         _userLon,
+        fuelPrice: _fuelPrice,
+        fuelConsumption: _fuelConsumption,
       );
       setState(() {
         _result = result;
@@ -246,6 +250,8 @@ class _RouteScreenState extends State<RouteScreen> {
                             ),
 
                             const SizedBox(height: 16),
+                            _fuelSettingsCard(),
+                            const SizedBox(height: 16),
 
                             // Детали
                             if (_currentProfile != null) ...[
@@ -342,9 +348,9 @@ class _RouteScreenState extends State<RouteScreen> {
                                               color:
                                                   Color(0xFF888888)),
                                         ),
-                                        const Text(
-                                          '55 сом/л',
-                                          style: TextStyle(
+                                        Text(
+                                          '${_fuelPrice.toStringAsFixed(0)} сом/л',
+                                          style: const TextStyle(
                                             fontSize: 14,
                                             fontWeight:
                                                 FontWeight.w600,
@@ -468,6 +474,93 @@ class _RouteScreenState extends State<RouteScreen> {
                     ),
                   ],
                 ),
+    );
+  }
+
+  Widget _fuelSettingsCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFF0F0F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'НАСТРОЙКИ ТОПЛИВА',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF555555),
+              letterSpacing: 0.5,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _smallNumberInput(
+                  label: 'Цена (сом/л)',
+                  value: _fuelPrice,
+                  onChanged: (v) => _fuelPrice = v,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _smallNumberInput(
+                  label: 'Расход (л/100км)',
+                  value: _fuelConsumption,
+                  onChanged: (v) => _fuelConsumption = v,
+                ),
+              ),
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 44,
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() => _isLoading = true);
+                    _calculate();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _green,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('ОК'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _smallNumberInput({
+    required String label,
+    required double value,
+    required ValueChanged<double> onChanged,
+  }) {
+    return TextFormField(
+      initialValue: value.toStringAsFixed(0),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      onChanged: (v) {
+        final parsed = double.tryParse(v.replaceAll(',', '.'));
+        if (parsed != null && parsed > 0) {
+          onChanged(parsed);
+        }
+      },
+      decoration: InputDecoration(
+        labelText: label,
+        isDense: true,
+        filled: true,
+        fillColor: const Color(0xFFF9F9F9),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+      ),
     );
   }
 

@@ -14,11 +14,47 @@ class _AddProductScreenState extends State<AddProductScreen> {
   final _titleController = TextEditingController();
   final _priceController = TextEditingController();
   final _weightController = TextEditingController();
+  final _quantityController = TextEditingController(text: '1');
   final _descriptionController = TextEditingController();
+  final _imageUrlController = TextEditingController();
 
   bool _isLoading = false;
+  bool _isInitLoading = true;
   String _error = '';
   String _success = '';
+  List<dynamic> _categories = [];
+  int? _selectedCategoryId;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _priceController.dispose();
+    _weightController.dispose();
+    _quantityController.dispose();
+    _descriptionController.dispose();
+    _imageUrlController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final categories = await ApiService.getCategories();
+      setState(() {
+        _categories = categories;
+        _isInitLoading = false;
+      });
+    } catch (_) {
+      setState(() {
+        _isInitLoading = false;
+      });
+    }
+  }
 
   Future<void> _save() async {
     if (_titleController.text.isEmpty || _priceController.text.isEmpty) {
@@ -36,8 +72,17 @@ class _AddProductScreenState extends State<AddProductScreen> {
       final result = await ApiService.createProduct(
         title: _titleController.text.trim(),
         price: _priceController.text.trim(),
-        weightKg: _weightController.text.trim(),
-        description: _descriptionController.text.trim(),
+        weightKg: _weightController.text.trim().isEmpty
+            ? null
+            : _weightController.text.trim(),
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
+        categoryId: _selectedCategoryId,
+        quantity: int.tryParse(_quantityController.text.trim()),
+        imageUrl: _imageUrlController.text.trim().isEmpty
+            ? null
+            : _imageUrlController.text.trim(),
       );
 
       if (result['id'] != null) {
@@ -66,13 +111,27 @@ class _AddProductScreenState extends State<AddProductScreen> {
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(
+        child: _isInitLoading
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.only(top: 40),
+                  child: CircularProgressIndicator(color: _green),
+                ),
+              )
+            : Column(
           children: [
             _input(_titleController, 'Название товара'),
             const SizedBox(height: 12),
             _input(_priceController, 'Цена (сом)', keyboard: TextInputType.number),
             const SizedBox(height: 12),
             _input(_weightController, 'Вес (кг)', keyboard: TextInputType.number),
+            const SizedBox(height: 12),
+            _input(_quantityController, 'Количество (шт.)',
+                keyboard: TextInputType.number),
+            const SizedBox(height: 12),
+            _categoryDropdown(),
+            const SizedBox(height: 12),
+            _input(_imageUrlController, 'URL картинки (опционально)'),
             const SizedBox(height: 12),
             _input(_descriptionController, 'Описание'),
             const SizedBox(height: 12),
@@ -96,6 +155,29 @@ class _AddProductScreenState extends State<AddProductScreen> {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _categoryDropdown() {
+    return DropdownButtonFormField<int>(
+      value: _selectedCategoryId,
+      items: _categories
+          .map(
+            (c) => DropdownMenuItem<int>(
+              value: c['id'] as int,
+              child: Text(c['name'].toString()),
+            ),
+          )
+          .toList(),
+      onChanged: (v) => setState(() => _selectedCategoryId = v),
+      decoration: InputDecoration(
+        hintText: 'Категория (опционально)',
+        filled: true,
+        fillColor: Colors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
     );

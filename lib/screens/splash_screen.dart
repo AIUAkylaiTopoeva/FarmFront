@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import 'admin_home_screen.dart';
+import 'farmer_home_screen.dart';
+import 'home_screen.dart';
 import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -27,14 +32,32 @@ class _SplashScreenState extends State<SplashScreen>
     );
     _controller.forward();
 
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
+    _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    await Future.delayed(const Duration(milliseconds: 1200));
+    if (!mounted) return;
+
+    final auth = context.read<AuthProvider>();
+    await auth.bootstrapSession();
+    if (!mounted) return;
+
+    Widget nextScreen = const LoginScreen();
+    if (auth.isAuthenticated) {
+      if (auth.role == 'farmer') {
+        nextScreen = const FarmerHomeScreen();
+      } else if (auth.role == 'admin') {
+        nextScreen = const AdminHomeScreen();
+      } else {
+        nextScreen = const HomeScreen();
       }
-    });
+    }
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => nextScreen),
+    );
   }
 
   @override
