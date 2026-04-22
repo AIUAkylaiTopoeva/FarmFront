@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'profile_screen.dart';
 import 'login_screen.dart';
+import 'add_product_screen.dart';
 
 class FarmerHomeScreen extends StatefulWidget {
   const FarmerHomeScreen({super.key});
@@ -168,8 +169,14 @@ class _FarmerHomeScreenState extends State<FarmerHomeScreen> {
                   ),
                   // Кнопка добавить товар
                   GestureDetector(
-                    onTap: () {
-                      // TODO: экран добавления товара
+                    onTap: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const AddProductScreen(),
+                        ),
+                      );
+                      _loadMyProducts();
                     },
                     child: Container(
                       padding: const EdgeInsets.symmetric(

@@ -4,6 +4,7 @@ import '../services/cart_store.dart';
 import 'profile_screen.dart';
 import 'product_detail_screen.dart';
 import 'cart_screen.dart';
+import 'route_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -135,7 +136,9 @@ class _HomeScreenState extends State<HomeScreen> {
           } else if (i == 2) {
             await Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => const CartScreen()),
+              MaterialPageRoute(
+                builder: (_) => RouteScreen(productIds: CartStore.productIds),
+              ),
             );
             setState(() => _navIndex = 0);
           } else if (i == 3) {
