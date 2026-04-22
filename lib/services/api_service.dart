@@ -3,7 +3,35 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://127.0.0.1:8000/api';
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://10.0.2.2:8000/api',
+  );
+
+  static dynamic _decodeBody(http.Response response) {
+    if (response.body.isEmpty) return null;
+    return jsonDecode(response.body);
+  }
+
+  static Map<String, dynamic> _decodeMap(http.Response response) {
+    final decoded = _decodeBody(response);
+    if (decoded is Map<String, dynamic>) return decoded;
+    return {};
+  }
+
+  static List<dynamic> _decodeList(http.Response response) {
+    final decoded = _decodeBody(response);
+    if (decoded is List<dynamic>) return decoded;
+    return [];
+  }
+
+  static void _ensureSuccess(http.Response response) {
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      final body = _decodeMap(response);
+      final detail = body['detail']?.toString() ?? 'Server error';
+      throw ApiException(detail, response.statusCode);
+    }
+  }
 
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -27,7 +55,8 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'email': email, 'password': password}),
     );
-    return jsonDecode(response.body);
+    _ensureSuccess(response);
+    return _decodeMap(response);
   }
 
   static Future<Map<String, dynamic>> register(
@@ -41,7 +70,8 @@ class ApiService {
         'role': role,
       }),
     );
-    return jsonDecode(response.body);
+    _ensureSuccess(response);
+    return _decodeMap(response);
   }
 
   static Future<Map<String, dynamic>> getMe() async {
@@ -53,7 +83,8 @@ class ApiService {
         'Authorization': 'Bearer $token',
       },
     );
-    return jsonDecode(response.body);
+    _ensureSuccess(response);
+    return _decodeMap(response);
   }
 
   static Future<Map<String, dynamic>> changeRole(String role) async {
@@ -66,7 +97,8 @@ class ApiService {
       },
       body: jsonEncode({'role': role}),
     );
-    return jsonDecode(response.body);
+    _ensureSuccess(response);
+    return _decodeMap(response);
   }
 
   static Future<Map<String, dynamic>> getFarmerProfile() async {
@@ -78,7 +110,8 @@ class ApiService {
         'Authorization': 'Bearer $token',
       },
     );
-    return jsonDecode(response.body);
+    _ensureSuccess(response);
+    return _decodeMap(response);
   }
 
   static Future<Map<String, dynamic>> updateFarmerProfile({
@@ -103,7 +136,8 @@ class ApiService {
       },
       body: jsonEncode(body),
     );
-    return jsonDecode(response.body);
+    _ensureSuccess(response);
+    return _decodeMap(response);
   }
 
   static Future<List<dynamic>> getCategories() async {
@@ -111,7 +145,8 @@ class ApiService {
       Uri.parse('$baseUrl/categories/'),
       headers: {'Content-Type': 'application/json'},
     );
-    return jsonDecode(response.body);
+    _ensureSuccess(response);
+    return _decodeList(response);
   }
 
   static Future<List<dynamic>> getProducts() async {
@@ -123,25 +158,38 @@ class ApiService {
         'Authorization': 'Bearer $token',
       },
     );
-    return jsonDecode(response.body);
+    _ensureSuccess(response);
+    return _decodeList(response);
   }
 
   static Future<Map<String, dynamic>> compareRoutes(
-      List<int> productIds, double startLat, double startLon) async {
+    List<int> productIds,
+    double startLat,
+    double startLon, {
+    double? fuelPrice,
+    double? fuelConsumption,
+  }) async {
     final token = await getToken();
+    final payload = <String, dynamic>{
+      'product_ids': productIds,
+      'start': {'lat': startLat, 'lon': startLon},
+      'road_quality': 'medium',
+    };
+    if (fuelPrice != null) payload['fuel_price_som'] = fuelPrice;
+    if (fuelConsumption != null) {
+      payload['fuel_consumption_l_per_100km'] = fuelConsumption;
+    }
+
     final response = await http.post(
       Uri.parse('$baseUrl/routing/compare/'),
       headers: {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
       },
-      body: jsonEncode({
-        'product_ids': productIds,
-        'start': {'lat': startLat, 'lon': startLon},
-        'road_quality': 'medium',
-      }),
+      body: jsonEncode(payload),
     );
-    return jsonDecode(response.body);
+    _ensureSuccess(response);
+    return _decodeMap(response);
   }
 
   static Future<List<dynamic>> getOrders() async {
@@ -153,6 +201,51 @@ class ApiService {
         'Authorization': 'Bearer $token',
       },
     );
-    return jsonDecode(response.body);
+    _ensureSuccess(response);
+    return _decodeList(response);
   }
+
+  static Future<Map<String, dynamic>> createProduct({
+    required String title,
+    required String price,
+    String? weightKg,
+    String? description,
+    int? categoryId,
+    int? quantity,
+    String? imageUrl,
+  }) async {
+    final token = await getToken();
+    final body = <String, dynamic>{
+      'title': title,
+      'price': price,
+    };
+    if (weightKg != null && weightKg.isNotEmpty) body['weight_kg'] = weightKg;
+    if (description != null && description.isNotEmpty) {
+      body['description'] = description;
+    }
+    if (categoryId != null) body['category'] = categoryId;
+    if (quantity != null) body['quantity'] = quantity;
+    if (imageUrl != null && imageUrl.isNotEmpty) body['image'] = imageUrl;
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/products/'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+    _ensureSuccess(response);
+    return _decodeMap(response);
+  }
+}
+
+class ApiException implements Exception {
+  final String message;
+  final int? statusCode;
+
+  const ApiException(this.message, [this.statusCode]);
+
+  @override
+  String toString() => 'ApiException($statusCode): $message';
 }
