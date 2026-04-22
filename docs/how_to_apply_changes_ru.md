@@ -17,8 +17,9 @@ git pull
 
 ```bash
 git checkout <твоя-ветка>
-git cherry-pick 7fbf2de
-git cherry-pick c839894
+# подставь нужные commit hash из git log:
+git cherry-pick <commit_hash>
+git cherry-pick <commit_hash>
 ```
 
 Если будут конфликты:

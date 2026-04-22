@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -10,7 +10,9 @@ class ApiService {
   static String get baseUrl {
     if (_envBaseUrl.isNotEmpty) return _envBaseUrl;
     if (kIsWeb) return 'http://127.0.0.1:8000/api';
-    if (Platform.isAndroid) return 'http://10.0.2.2:8000/api';
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      return 'http://10.0.2.2:8000/api';
+    }
     return 'http://127.0.0.1:8000/api';
   }
 
@@ -18,14 +20,16 @@ class ApiService {
       Future<http.Response> Function() request) async {
     try {
       return await request().timeout(const Duration(seconds: 15));
-    } on SocketException {
+    } on TimeoutException {
+      throw ApiException(
+        'Сервер не ответил вовремя. Проверь API_BASE_URL: $baseUrl',
+      );
+    } on http.ClientException {
       throw ApiException(
         'Нет соединения с сервером. Проверь API_BASE_URL: $baseUrl',
       );
-    } on HttpException {
-      throw ApiException('HTTP ошибка при подключении к серверу.');
-    } on FormatException {
-      throw ApiException('Некорректный ответ сервера.');
+    } on Exception catch (e) {
+      throw ApiException('Сетевая ошибка: $e');
     }
   }
 
