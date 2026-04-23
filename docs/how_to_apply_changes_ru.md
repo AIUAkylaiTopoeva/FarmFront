@@ -20,6 +20,8 @@ git checkout <твоя-ветка>
 # подставь нужные commit hash из git log:
 git cherry-pick <commit_hash>
 git cherry-pick <commit_hash>
+git cherry-pick 7fbf2de
+git cherry-pick c839894
 ```
 
 Если будут конфликты:
