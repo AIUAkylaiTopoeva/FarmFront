@@ -17,6 +17,9 @@ git pull
 
 ```bash
 git checkout <твоя-ветка>
+# подставь нужные commit hash из git log:
+git cherry-pick <commit_hash>
+git cherry-pick <commit_hash>
 git cherry-pick 7fbf2de
 git cherry-pick c839894
 ```
@@ -59,3 +62,19 @@ git push
 
 ## Частая ошибка
 Если backend не принимает новые поля, временно убери их из payload в `compareRoutes(...)` и `createProduct(...)` и сверяйся со Swagger (`/swagger/`).
+
+## Если «пропала связь с бэком»
+Проверь `API_BASE_URL` при запуске Flutter:
+
+```bash
+# Android emulator
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000/api
+
+# iOS simulator / Web / Desktop (локальный backend)
+flutter run --dart-define=API_BASE_URL=http://127.0.0.1:8000/api
+
+# Физический телефон в одной Wi‑Fi сети с backend
+flutter run --dart-define=API_BASE_URL=http://192.168.1.100:8000/api
+```
+
+Где `192.168.1.100` — это IP твоего компьютера с Django.

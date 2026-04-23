@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -50,10 +52,12 @@ class ApiService {
 
   static Future<Map<String, dynamic>> login(
       String email, String password) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/accounts/login/'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'email': email, 'password': password}),
+    final response = await _send(
+      () => http.post(
+        Uri.parse('$baseUrl/accounts/login/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email, 'password': password}),
+      ),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
@@ -61,14 +65,16 @@ class ApiService {
 
   static Future<Map<String, dynamic>> register(
       String email, String password, String role) async {
-    final response = await http.post(
-      Uri.parse('$baseUrl/accounts/register/'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-        'role': role,
-      }),
+    final response = await _send(
+      () => http.post(
+        Uri.parse('$baseUrl/accounts/register/'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'password': password,
+          'role': role,
+        }),
+      ),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
@@ -76,12 +82,14 @@ class ApiService {
 
   static Future<Map<String, dynamic>> getMe() async {
     final token = await getToken();
-    final response = await http.get(
-      Uri.parse('$baseUrl/accounts/me/'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
+    final response = await _send(
+      () => http.get(
+        Uri.parse('$baseUrl/accounts/me/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
@@ -89,13 +97,15 @@ class ApiService {
 
   static Future<Map<String, dynamic>> changeRole(String role) async {
     final token = await getToken();
-    final response = await http.patch(
-      Uri.parse('$baseUrl/accounts/change-role/'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode({'role': role}),
+    final response = await _send(
+      () => http.patch(
+        Uri.parse('$baseUrl/accounts/change-role/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'role': role}),
+      ),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
@@ -103,12 +113,14 @@ class ApiService {
 
   static Future<Map<String, dynamic>> getFarmerProfile() async {
     final token = await getToken();
-    final response = await http.get(
-      Uri.parse('$baseUrl/accounts/farmer/profile/'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
+    final response = await _send(
+      () => http.get(
+        Uri.parse('$baseUrl/accounts/farmer/profile/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
@@ -128,22 +140,26 @@ class ApiService {
     if (lat != null) body['lat'] = lat;
     if (lon != null) body['lon'] = lon;
 
-    final response = await http.patch(
-      Uri.parse('$baseUrl/accounts/farmer/profile/'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-      body: jsonEncode(body),
+    final response = await _send(
+      () => http.patch(
+        Uri.parse('$baseUrl/accounts/farmer/profile/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(body),
+      ),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
   }
 
   static Future<List<dynamic>> getCategories() async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/categories/'),
-      headers: {'Content-Type': 'application/json'},
+    final response = await _send(
+      () => http.get(
+        Uri.parse('$baseUrl/categories/'),
+        headers: {'Content-Type': 'application/json'},
+      ),
     );
     _ensureSuccess(response);
     return _decodeList(response);
@@ -151,12 +167,14 @@ class ApiService {
 
   static Future<List<dynamic>> getProducts() async {
     final token = await getToken();
-    final response = await http.get(
-      Uri.parse('$baseUrl/products/'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
+    final response = await _send(
+      () => http.get(
+        Uri.parse('$baseUrl/products/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ),
     );
     _ensureSuccess(response);
     return _decodeList(response);
@@ -194,12 +212,14 @@ class ApiService {
 
   static Future<List<dynamic>> getOrders() async {
     final token = await getToken();
-    final response = await http.get(
-      Uri.parse('$baseUrl/orders/'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
+    final response = await _send(
+      () => http.get(
+        Uri.parse('$baseUrl/orders/'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      ),
     );
     _ensureSuccess(response);
     return _decodeList(response);
