@@ -5,39 +5,10 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String _envBaseUrl = String.fromEnvironment('API_BASE_URL');
-
-  static String get baseUrl {
-    if (_envBaseUrl.isNotEmpty) return _envBaseUrl;
-    if (kIsWeb) return 'http://127.0.0.1:8000/api';
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8000/api';
-    }
-    return 'http://127.0.0.1:8000/api';
-  }
-
-  static Future<http.Response> _request(
-      Future<http.Response> Function() request) async {
-    try {
-      return await request().timeout(const Duration(seconds: 15));
-    } on TimeoutException {
-      throw ApiException(
-        'Сервер не ответил вовремя. Проверь API_BASE_URL: $baseUrl',
-      );
-    } on http.ClientException {
-      throw ApiException(
-        'Нет соединения с сервером. Проверь API_BASE_URL: $baseUrl',
-      );
-    } on Exception catch (e) {
-      throw ApiException('Сетевая ошибка: $e');
-    }
-  }
-
-  // Backward-compatible alias to avoid breakage in partially merged branches.
-  static Future<http.Response> _send(
-      Future<http.Response> Function() request) {
-    return _request(request);
-  }
+  static const String baseUrl = String.fromEnvironment(
+    'API_BASE_URL',
+    defaultValue: 'http://10.0.2.2:8000/api',
+  );
 
   static dynamic _decodeBody(http.Response response) {
     if (response.body.isEmpty) return null;
@@ -227,15 +198,13 @@ class ApiService {
       payload['fuel_consumption_l_per_100km'] = fuelConsumption;
     }
 
-    final response = await _send(
-      () => http.post(
-        Uri.parse('$baseUrl/routing/compare/'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(payload),
-      ),
+    final response = await http.post(
+      Uri.parse('$baseUrl/routing/compare/'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(payload),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
@@ -278,15 +247,13 @@ class ApiService {
     if (quantity != null) body['quantity'] = quantity;
     if (imageUrl != null && imageUrl.isNotEmpty) body['image'] = imageUrl;
 
-    final response = await _send(
-      () => http.post(
-        Uri.parse('$baseUrl/products/'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(body),
-      ),
+    final response = await http.post(
+      Uri.parse('$baseUrl/products/'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
