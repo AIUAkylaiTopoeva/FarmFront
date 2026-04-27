@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 import '../services/cart_store.dart';
-import 'cart_screen.dart';
-import 'route_screen.dart';
-import 'order_create_screen.dart';
 
 class OrderCreateScreen extends StatefulWidget {
   const OrderCreateScreen({super.key});
@@ -14,28 +12,54 @@ class OrderCreateScreen extends StatefulWidget {
 class _OrderCreateScreenState extends State<OrderCreateScreen> {
   static const _green = Color(0xFF1C4A2A);
 
+  final _nameController = TextEditingController();
   final _addressController = TextEditingController();
   final _phoneController = TextEditingController();
   final _commentController = TextEditingController();
 
+  bool _isLoading = false;
   String _error = '';
-  String _success = '';
 
-  void _submit() {
-    if (_addressController.text.isEmpty || _phoneController.text.isEmpty) {
-      setState(() {
-        _error = 'Введите адрес и телефон';
-        _success = '';
-      });
+  Future<void> _submit() async {
+    if (_nameController.text.isEmpty ||
+        _addressController.text.isEmpty ||
+        _phoneController.text.isEmpty) {
+      setState(() => _error = 'Заполните имя, адрес и телефон');
       return;
     }
 
-    setState(() {
-      _error = '';
-      _success = 'Заказ оформлен (демо-режим)';
-    });
+    setState(() { _isLoading = true; _error = ''; });
 
-    CartStore.clear();
+    try {
+      final items = CartStore.items.map((item) => {
+        'product': item['id'],
+        'quantity': item['qty'] ?? 1,
+      }).toList();
+
+      await ApiService.createOrder(
+        deliveryName: _nameController.text.trim(),
+        deliveryAddress: _addressController.text.trim(),
+        deliveryPhone: _phoneController.text.trim(),
+        comment: _commentController.text.trim(),
+        items: items,
+      );
+
+      CartStore.clear();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Заказ оформлен!'),
+            backgroundColor: Color(0xFF1C4A2A),
+          ),
+        );
+        Navigator.pop(context);
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      setState(() => _error = 'Ошибка: $e');
+    }
+
+    setState(() => _isLoading = false);
   }
 
   @override
@@ -51,27 +75,46 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
         padding: const EdgeInsets.all(14),
         child: Column(
           children: [
-            _input(_addressController, 'Адрес доставки / самовывоза'),
+            _input(_nameController, 'Имя получателя'),
             const SizedBox(height: 12),
-            _input(_phoneController, 'Телефон'),
+            _input(_addressController, 'Адрес доставки'),
+            const SizedBox(height: 12),
+            _input(_phoneController, 'Телефон',
+                keyboard: TextInputType.phone),
             const SizedBox(height: 12),
             _input(_commentController, 'Комментарий'),
             const SizedBox(height: 16),
             if (_error.isNotEmpty)
-              Text(_error, style: const TextStyle(color: Colors.red)),
-            if (_success.isNotEmpty)
-              Text(_success, style: const TextStyle(color: _green)),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFEBEE),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(_error,
+                    style: const TextStyle(color: Color(0xFFC62828))),
+              ),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                onPressed: _submit,
+                onPressed: _isLoading ? null : _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _green,
                   foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
-                child: const Text('Подтвердить заказ'),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            color: Colors.white, strokeWidth: 2),
+                      )
+                    : const Text('Подтвердить заказ'),
               ),
             ),
           ],
@@ -80,9 +123,11 @@ class _OrderCreateScreenState extends State<OrderCreateScreen> {
     );
   }
 
-  Widget _input(TextEditingController controller, String hint) {
+  Widget _input(TextEditingController controller, String hint,
+      {TextInputType keyboard = TextInputType.text}) {
     return TextField(
       controller: controller,
+      keyboardType: keyboard,
       decoration: InputDecoration(
         hintText: hint,
         filled: true,

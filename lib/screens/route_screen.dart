@@ -16,8 +16,16 @@ class _RouteScreenState extends State<RouteScreen> {
   bool _isLoading = true;
   String _error = '';
   String _selectedProfile = 'cheapest';
-  double _fuelPrice = 65;
-  double _fuelConsumption = 10;
+
+  // Контроллеры для полей топлива
+  final _fuelPriceController = TextEditingController(text: '65');
+  final _fuelConsumptionController = TextEditingController(text: '10');
+
+  double get _fuelPrice =>
+      double.tryParse(_fuelPriceController.text.replaceAll(',', '.')) ?? 65.0;
+  double get _fuelConsumption =>
+      double.tryParse(_fuelConsumptionController.text.replaceAll(',', '.')) ??
+      10.0;
 
   static const _green = Color(0xFF1C4A2A);
   static const _lightGreen = Color(0xFF81C784);
@@ -31,7 +39,18 @@ class _RouteScreenState extends State<RouteScreen> {
     _calculate();
   }
 
+  @override
+  void dispose() {
+    _fuelPriceController.dispose();
+    _fuelConsumptionController.dispose();
+    super.dispose();
+  }
+
   Future<void> _calculate() async {
+    setState(() {
+      _isLoading = true;
+      _error = '';
+    });
     try {
       final result = await ApiService.compareRoutes(
         widget.productIds,
@@ -46,7 +65,9 @@ class _RouteScreenState extends State<RouteScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = 'Ошибка расчёта маршрута';
+        _error = e.toString().contains('2 distinct farmers')
+            ? 'Нужно выбрать товары минимум от 2 разных фермеров'
+            : 'Ошибка расчёта маршрута';
         _isLoading = false;
       });
     }
@@ -93,13 +114,13 @@ class _RouteScreenState extends State<RouteScreen> {
               const Icon(Icons.agriculture,
                   color: Color(0xFF1C4A2A), size: 32),
               Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 4, vertical: 2),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(4),
-                  border: Border.all(
-                      color: const Color(0xFFE0E0E0)),
+                  border:
+                      Border.all(color: const Color(0xFFE0E0E0)),
                 ),
                 child: Text(
                   p['farm_name'] != ''
@@ -150,36 +171,49 @@ class _RouteScreenState extends State<RouteScreen> {
             )
           : _error.isNotEmpty
               ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline,
-                          color: Color(0xFFCCCCCC), size: 48),
-                      const SizedBox(height: 12),
-                      Text(
-                        _error,
-                        style: const TextStyle(
-                            color: Color(0xFF888888)),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'Нужно минимум 2 фермы с координатами',
-                        style: TextStyle(
-                            color: Color(0xFFAAAAAA), fontSize: 12),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.error_outline,
+                            color: Color(0xFFCCCCCC), size: 56),
+                        const SizedBox(height: 16),
+                        Text(
+                          _error,
+                          style: const TextStyle(
+                              color: Color(0xFF555555),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Добавьте товары от разных фермеров\nи попробуйте снова',
+                          style: TextStyle(
+                              color: Color(0xFFAAAAAA),
+                              fontSize: 13),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        OutlinedButton.icon(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.arrow_back),
+                          label: const Text('Вернуться'),
+                        ),
+                      ],
+                    ),
                   ),
                 )
               : Column(
                   children: [
                     // Карта
                     SizedBox(
-                      height: 260,
+                      height: 240,
                       child: FlutterMap(
                         options: MapOptions(
                           initialCenter: LatLng(_userLat, _userLon),
-                          initialZoom: 12,
+                          initialZoom: 11,
                         ),
                         children: [
                           TileLayer(
@@ -210,7 +244,107 @@ class _RouteScreenState extends State<RouteScreen> {
                           crossAxisAlignment:
                               CrossAxisAlignment.start,
                           children: [
-                            // Профили
+                            // ── Настройки топлива ──
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius:
+                                    BorderRadius.circular(12),
+                                border: Border.all(
+                                    color: const Color(0xFFF0F0F0)),
+                              ),
+                              child: Column(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'ПАРАМЕТРЫ ТОПЛИВА',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFF555555),
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: TextField(
+                                          controller:
+                                              _fuelPriceController,
+                                          keyboardType: const TextInputType
+                                              .numberWithOptions(
+                                              decimal: true),
+                                          decoration: InputDecoration(
+                                            labelText: 'Цена сом/л',
+                                            isDense: true,
+                                            filled: true,
+                                            fillColor: const Color(
+                                                0xFFF9F9F9),
+                                            border:
+                                                OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius
+                                                      .circular(10),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: TextField(
+                                          controller:
+                                              _fuelConsumptionController,
+                                          keyboardType: const TextInputType
+                                              .numberWithOptions(
+                                              decimal: true),
+                                          decoration: InputDecoration(
+                                            labelText: 'Расход л/100км',
+                                            isDense: true,
+                                            filled: true,
+                                            fillColor: const Color(
+                                                0xFFF9F9F9),
+                                            border:
+                                                OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius
+                                                      .circular(10),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      SizedBox(
+                                        height: 44,
+                                        child: ElevatedButton(
+                                          onPressed: _calculate,
+                                          style:
+                                              ElevatedButton.styleFrom(
+                                            backgroundColor: _green,
+                                            foregroundColor:
+                                                Colors.white,
+                                            shape:
+                                                RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius
+                                                      .circular(10),
+                                            ),
+                                          ),
+                                          child:
+                                              const Text('ОК'),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            const SizedBox(height: 14),
+
+                            // ── Профили ──
                             const Text(
                               'ПРОФИЛЬ МАРШРУТА',
                               style: TextStyle(
@@ -224,36 +358,37 @@ class _RouteScreenState extends State<RouteScreen> {
                             Row(
                               children: [
                                 Expanded(
-                                    child: _profileCard(
-                                  'cheapest',
-                                  'Дешевле',
-                                  Icons.savings_outlined,
-                                  '${_result?['profiles']?['cheapest']?['fuel_cost_som']?.toStringAsFixed(0) ?? '—'} сом',
-                                )),
+                                  child: _profileCard(
+                                    'cheapest',
+                                    'Дешевле',
+                                    Icons.savings_outlined,
+                                    '${_result?['profiles']?['cheapest']?['fuel_cost_som']?.toStringAsFixed(0) ?? '—'} сом',
+                                  ),
+                                ),
                                 const SizedBox(width: 8),
                                 Expanded(
-                                    child: _profileCard(
-                                  'fastest',
-                                  'Быстрее',
-                                  Icons.speed_outlined,
-                                  '${_result?['profiles']?['fastest']?['travel_time_min']?.toStringAsFixed(0) ?? '—'} мин',
-                                )),
+                                  child: _profileCard(
+                                    'fastest',
+                                    'Быстрее',
+                                    Icons.speed_outlined,
+                                    '${_result?['profiles']?['fastest']?['travel_time_min']?.toStringAsFixed(0) ?? '—'} мин',
+                                  ),
+                                ),
                                 const SizedBox(width: 8),
                                 Expanded(
-                                    child: _profileCard(
-                                  'balanced',
-                                  'Баланс',
-                                  Icons.balance_outlined,
-                                  'оптим.',
-                                )),
+                                  child: _profileCard(
+                                    'balanced',
+                                    'Баланс',
+                                    Icons.balance_outlined,
+                                    'оптим.',
+                                  ),
+                                ),
                               ],
                             ),
 
-                            const SizedBox(height: 16),
-                            _fuelSettingsCard(),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 14),
 
-                            // Детали
+                            // ── Детали текущего профиля ──
                             if (_currentProfile != null) ...[
                               const Text(
                                 'ДЕТАЛИ МАРШРУТА',
@@ -295,24 +430,23 @@ class _RouteScreenState extends State<RouteScreen> {
 
                               const SizedBox(height: 12),
 
-                              // Стоимость топлива
+                              // Стоимость
                               Container(
-                                padding: const EdgeInsets.all(12),
+                                padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius:
                                       BorderRadius.circular(12),
                                   border: Border.all(
-                                      color:
-                                          const Color(0xFFF0F0F0)),
+                                      color: const Color(0xFFF0F0F0)),
                                 ),
                                 child: Row(
                                   children: [
                                     const Icon(
                                         Icons.local_gas_station,
                                         color: Color(0xFF1C4A2A),
-                                        size: 20),
-                                    const SizedBox(width: 10),
+                                        size: 22),
+                                    const SizedBox(width: 12),
                                     Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
@@ -321,17 +455,14 @@ class _RouteScreenState extends State<RouteScreen> {
                                           'Стоимость топлива',
                                           style: TextStyle(
                                               fontSize: 12,
-                                              color:
-                                                  Color(0xFF888888)),
+                                              color: Color(0xFF888888)),
                                         ),
                                         Text(
                                           '${_currentProfile!['fuel_cost_som']?.toStringAsFixed(0) ?? '—'} сом',
                                           style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight:
-                                                FontWeight.w700,
-                                            color:
-                                                Color(0xFF1C4A2A),
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w700,
+                                            color: Color(0xFF1C4A2A),
                                           ),
                                         ),
                                       ],
@@ -344,18 +475,14 @@ class _RouteScreenState extends State<RouteScreen> {
                                         const Text(
                                           'Цена бензина',
                                           style: TextStyle(
-                                              fontSize: 12,
-                                              color:
-                                                  Color(0xFF888888)),
+                                              fontSize: 11,
+                                              color: Color(0xFF888888)),
                                         ),
                                         Text(
                                           '${_fuelPrice.toStringAsFixed(0)} сом/л',
                                           style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight:
-                                                FontWeight.w600,
-                                            color:
-                                                Color(0xFF1a1a1a),
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ],
@@ -366,7 +493,7 @@ class _RouteScreenState extends State<RouteScreen> {
 
                               const SizedBox(height: 12),
 
-                              // Экономия
+                              // ── Экономия ──
                               if (_result?['savings'] != null)
                                 Container(
                                   width: double.infinity,
@@ -376,39 +503,59 @@ class _RouteScreenState extends State<RouteScreen> {
                                     borderRadius:
                                         BorderRadius.circular(12),
                                     border: Border.all(
-                                        color: const Color(
-                                            0xFFA5D6A7)),
+                                        color: const Color(0xFFA5D6A7)),
                                   ),
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      const Row(
+                                      Row(
                                         children: [
-                                          Icon(
-                                              Icons
-                                                  .trending_down_rounded,
-                                              color:
-                                                  Color(0xFF1C4A2A),
+                                          const Icon(
+                                              Icons.trending_down_rounded,
+                                              color: Color(0xFF1C4A2A),
                                               size: 18),
-                                          SizedBox(width: 6),
-                                          Text(
-                                            'Экономия vs худшего варианта',
+                                          const SizedBox(width: 6),
+                                          const Text(
+                                            'Экономия vs наивного маршрута',
                                             style: TextStyle(
-                                              fontWeight:
-                                                  FontWeight.w600,
-                                              color:
-                                                  Color(0xFF1C4A2A),
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF1C4A2A),
                                               fontSize: 13,
                                             ),
                                           ),
+                                          const Spacer(),
+                                          if (_result!['savings']
+                                                  ['money_pct'] !=
+                                              null)
+                                            Container(
+                                              padding: const EdgeInsets
+                                                  .symmetric(
+                                                  horizontal: 8,
+                                                  vertical: 3),
+                                              decoration: BoxDecoration(
+                                                color: const Color(
+                                                    0xFF1C4A2A),
+                                                borderRadius:
+                                                    BorderRadius
+                                                        .circular(8),
+                                              ),
+                                              child: Text(
+                                                '−${_result!['savings']['money_pct']}%',
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 11,
+                                                  fontWeight:
+                                                      FontWeight.w600,
+                                                ),
+                                              ),
+                                            ),
                                         ],
                                       ),
-                                      const SizedBox(height: 10),
+                                      const SizedBox(height: 12),
                                       Row(
                                         mainAxisAlignment:
-                                            MainAxisAlignment
-                                                .spaceAround,
+                                            MainAxisAlignment.spaceAround,
                                         children: [
                                           _savingItem(
                                             '${_result!['savings']['money_som']?.toStringAsFixed(0) ?? '0'} сом',
@@ -453,8 +600,7 @@ class _RouteScreenState extends State<RouteScreen> {
                                     'Отлично, принято!',
                                     style: TextStyle(
                                         fontSize: 15,
-                                        fontWeight:
-                                            FontWeight.w600),
+                                        fontWeight: FontWeight.w600),
                                   ),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: _green,
@@ -467,6 +613,7 @@ class _RouteScreenState extends State<RouteScreen> {
                                   ),
                                 ),
                               ),
+                              const SizedBox(height: 8),
                             ],
                           ],
                         ),
@@ -477,93 +624,6 @@ class _RouteScreenState extends State<RouteScreen> {
     );
   }
 
-  Widget _fuelSettingsCard() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFF0F0F0)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'НАСТРОЙКИ ТОПЛИВА',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF555555),
-              letterSpacing: 0.5,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _smallNumberInput(
-                  label: 'Цена (сом/л)',
-                  value: _fuelPrice,
-                  onChanged: (v) => _fuelPrice = v,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _smallNumberInput(
-                  label: 'Расход (л/100км)',
-                  value: _fuelConsumption,
-                  onChanged: (v) => _fuelConsumption = v,
-                ),
-              ),
-              const SizedBox(width: 8),
-              SizedBox(
-                height: 44,
-                child: ElevatedButton(
-                  onPressed: () {
-                    setState(() => _isLoading = true);
-                    _calculate();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _green,
-                    foregroundColor: Colors.white,
-                  ),
-                  child: const Text('ОК'),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _smallNumberInput({
-    required String label,
-    required double value,
-    required ValueChanged<double> onChanged,
-  }) {
-    return TextFormField(
-      initialValue: value.toStringAsFixed(0),
-      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-      onChanged: (v) {
-        final parsed = double.tryParse(v.replaceAll(',', '.'));
-        if (parsed != null && parsed > 0) {
-          onChanged(parsed);
-        }
-      },
-      decoration: InputDecoration(
-        labelText: label,
-        isDense: true,
-        filled: true,
-        fillColor: const Color(0xFFF9F9F9),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-      ),
-    );
-  }
-
   Widget _profileCard(
       String profile, String label, IconData icon, String value) {
     final isSelected = _selectedProfile == profile;
@@ -571,7 +631,8 @@ class _RouteScreenState extends State<RouteScreen> {
       onTap: () => setState(() => _selectedProfile = profile),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        padding:
+            const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         decoration: BoxDecoration(
           color: isSelected ? _green : Colors.white,
           borderRadius: BorderRadius.circular(12),
@@ -601,7 +662,7 @@ class _RouteScreenState extends State<RouteScreen> {
             Text(
               value,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 11,
                 color: isSelected
                     ? _lightGreen
                     : const Color(0xFF888888),
