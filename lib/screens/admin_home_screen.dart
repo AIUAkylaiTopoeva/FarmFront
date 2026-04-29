@@ -13,9 +13,8 @@ class AdminHomeScreen extends StatefulWidget {
 
 class _AdminHomeScreenState extends State<AdminHomeScreen> {
   static const _green = Color(0xFF1C4A2A);
-  static const _lightGreen = Color(0xFF81C784);
+  // _lightGreen и _farmers убраны — не использовались
 
-  List<dynamic> _farmers = [];
   List<dynamic> _products = [];
   bool _isLoading = true;
   int _navIndex = 0;
@@ -47,7 +46,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Шапка админа
             Container(
               color: const Color(0xFF1a1a1a),
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
@@ -81,7 +79,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.1),
+                          color: Colors.white.withValues(alpha: 0.1), // ← исправлено
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: const Row(
@@ -103,7 +101,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               ),
             ),
 
-            // Статистика
             Container(
               color: const Color(0xFF1a1a1a),
               child: Container(
@@ -148,7 +145,6 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               ),
             ),
 
-            // Контент по вкладкам
             Expanded(
               child: _isLoading
                   ? const Center(
@@ -239,7 +235,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               trailing: Switch(
                 value: p['is_active'] == true,
                 onChanged: (_) {},
-                activeColor: _green,
+                activeThumbColor: _green, // ← исправлено
               ),
             ),
           );
@@ -266,22 +262,19 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           const SizedBox(height: 16),
           const Text(
             'Список фермеров',
-            style: TextStyle(
-                fontSize: 15, fontWeight: FontWeight.w600),
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 6),
           const Text(
             'Здесь будет верификация фермеров',
-            style: TextStyle(
-                fontSize: 13, color: Color(0xFF888888)),
+            style: TextStyle(fontSize: 13, color: Color(0xFF888888)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSettingsTab(
-      BuildContext context, AuthProvider auth) {
+  Widget _buildSettingsTab(BuildContext context, AuthProvider auth) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -290,8 +283,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              border:
-                  Border.all(color: const Color(0xFFF0F0F0)),
+              border: Border.all(color: const Color(0xFFF0F0F0)),
             ),
             child: Column(
               children: [
@@ -305,7 +297,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
-                      color: Colors.amber.withOpacity(0.15),
+                      color: Colors.amber.withValues(alpha: 0.15), // ← исправлено
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: const Text(
@@ -326,8 +318,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   trailing: Text(
                     auth.email,
                     style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF888888)),
+                        fontSize: 12, color: Color(0xFF888888)),
                   ),
                 ),
               ],
@@ -352,10 +343,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
               label: const Text('Выйти из аккаунта'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: const Color(0xFFC62828),
-                side: const BorderSide(
-                    color: Color(0xFFFFCDD2)),
-                padding:
-                    const EdgeInsets.symmetric(vertical: 14),
+                side: const BorderSide(color: Color(0xFFFFCDD2)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
