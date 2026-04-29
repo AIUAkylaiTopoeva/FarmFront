@@ -237,7 +237,12 @@ class ApiService {
       ),
     );
     _ensureSuccess(response);
-    return _decodeList(response);
+    final decoded = _decodeBody(response);
+    if (decoded is Map && decoded.containsKey('results')) {
+        return decoded['results'] as List<dynamic>;
+    }
+    if (decoded is List) return decoded;
+    return [];
   }
 
   static Future<Map<String, dynamic>> createProduct({
