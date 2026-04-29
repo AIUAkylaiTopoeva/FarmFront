@@ -162,7 +162,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
 
   Widget _categoryDropdown() {
     return DropdownButtonFormField<int>(
-      value: _selectedCategoryId,
+      initialValue: _selectedCategoryId,
       items: _categories
           .map(
             (c) => DropdownMenuItem<int>(

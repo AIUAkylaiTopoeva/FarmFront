@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'profile_screen.dart';
-import 'login_screen.dart';
 import 'add_product_screen.dart';
 
 class FarmerHomeScreen extends StatefulWidget {

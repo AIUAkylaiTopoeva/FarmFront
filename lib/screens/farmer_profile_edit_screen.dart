@@ -360,7 +360,7 @@ class _FarmerProfileEditScreenState extends State<FarmerProfileEditScreen> {
                                         vertical: 8,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.95),
+                                        color: Colors.white.withValues(alpha: 0.95),
                                         borderRadius:
                                             BorderRadius.circular(10),
                                       ),
