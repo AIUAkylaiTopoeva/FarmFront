@@ -31,7 +31,6 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
     _controller.forward();
-
     _bootstrap();
   }
 
@@ -72,7 +71,6 @@ class _SplashScreenState extends State<SplashScreen>
       backgroundColor: const Color(0xFF0F6E56),
       body: Stack(
         children: [
-          // Фоновые круги
           Positioned(
             top: -60,
             right: -60,
@@ -81,7 +79,7 @@ class _SplashScreenState extends State<SplashScreen>
               height: 250,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
               ),
             ),
           ),
@@ -93,12 +91,10 @@ class _SplashScreenState extends State<SplashScreen>
               height: 300,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
               ),
             ),
           ),
-
-          // Контент
           Center(
             child: FadeTransition(
               opacity: _fadeAnim,
@@ -111,7 +107,6 @@ class _SplashScreenState extends State<SplashScreen>
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Логотип
                     Container(
                       width: 100,
                       height: 100,
@@ -144,17 +139,11 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                     ),
                     const SizedBox(height: 60),
-
-                    // Шаги
-                    _buildStep(Icons.storefront_rounded,
-                        'Выбери товары у фермеров'),
+                    _buildStep(Icons.storefront_rounded, 'Выбери товары у фермеров'),
                     const SizedBox(height: 16),
-                    _buildStep(Icons.route_rounded,
-                        'Получи оптимальный маршрут'),
+                    _buildStep(Icons.route_rounded, 'Получи оптимальный маршрут'),
                     const SizedBox(height: 16),
-                    _buildStep(Icons.savings_rounded,
-                        'Сэкономь время и деньги'),
-
+                    _buildStep(Icons.savings_rounded, 'Сэкономь время и деньги'),
                     const SizedBox(height: 60),
                     const CircularProgressIndicator(
                       color: Colors.white54,
@@ -177,7 +166,7 @@ class _SplashScreenState extends State<SplashScreen>
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.15),
+            color: Colors.white.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(icon, color: Colors.white, size: 20),
@@ -185,10 +174,7 @@ class _SplashScreenState extends State<SplashScreen>
         const SizedBox(width: 12),
         Text(
           text,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-          ),
+          style: const TextStyle(color: Colors.white, fontSize: 15),
         ),
       ],
     );

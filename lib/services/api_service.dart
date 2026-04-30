@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String _envBaseUrl = String.fromEnvironment('API_BASE_URL');
+  static const String _envBaseUrl =
+      String.fromEnvironment('API_BASE_URL');
 
   static String get baseUrl {
     if (_envBaseUrl.isNotEmpty) return _envBaseUrl;
@@ -22,25 +24,22 @@ class ApiService {
       return await request().timeout(const Duration(seconds: 15));
     } on TimeoutException {
       throw ApiException(
-        'Сервер не ответил вовремя. Проверь API_BASE_URL: $baseUrl',
-      );
+          'Сервер не ответил вовремя. API: $baseUrl');
     } on http.ClientException {
       throw ApiException(
-        'Нет соединения с сервером. Проверь API_BASE_URL: $baseUrl',
-      );
+          'Нет соединения с сервером. API: $baseUrl');
     } on Exception catch (e) {
       throw ApiException('Сетевая ошибка: $e');
     }
   }
 
   static Future<http.Response> _send(
-      Future<http.Response> Function() request) {
-    return _request(request);
-  }
+          Future<http.Response> Function() request) =>
+      _request(request);
 
   static dynamic _decodeBody(http.Response response) {
     if (response.body.isEmpty) return null;
-    return jsonDecode(response.body);
+    return jsonDecode(utf8.decode(response.bodyBytes));
   }
 
   static Map<String, dynamic> _decodeMap(http.Response response) {
@@ -58,7 +57,8 @@ class ApiService {
   static void _ensureSuccess(http.Response response) {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final body = _decodeMap(response);
-      final detail = body['detail']?.toString() ?? 'Server error';
+      final detail =
+          body['detail']?.toString() ?? 'Ошибка сервера';
       throw ApiException(detail, response.statusCode);
     }
   }
@@ -125,7 +125,8 @@ class ApiService {
     return _decodeMap(response);
   }
 
-  static Future<Map<String, dynamic>> resendCode(String email) async {
+  static Future<Map<String, dynamic>> resendCode(
+      String email) async {
     final response = await _send(
       () => http.post(
         Uri.parse('$baseUrl/accounts/resend-code/'),
@@ -152,7 +153,8 @@ class ApiService {
     return _decodeMap(response);
   }
 
-  static Future<Map<String, dynamic>> changeRole(String role) async {
+  static Future<Map<String, dynamic>> changeRole(
+      String role) async {
     final token = await getToken();
     final response = await _send(
       () => http.patch(
@@ -212,6 +214,24 @@ class ApiService {
     return _decodeMap(response);
   }
 
+  // ── Farmers Map ────────────────────────────────────────────────
+
+  /// Возвращает список всех ферм с координатами для карты
+  static Future<List<dynamic>> getFarmersMap() async {
+    final token = await getToken();
+    final response = await _send(
+      () => http.get(
+        Uri.parse('$baseUrl/accounts/farmers/map/'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+      ),
+    );
+    _ensureSuccess(response);
+    return _decodeList(response);
+  }
+
   // ── Products ───────────────────────────────────────────────────
 
   static Future<List<dynamic>> getCategories() async {
@@ -232,19 +252,20 @@ class ApiService {
         Uri.parse('$baseUrl/products/'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
+          if (token != null) 'Authorization': 'Bearer $token',
         },
       ),
     );
     _ensureSuccess(response);
     final decoded = _decodeBody(response);
     if (decoded is Map && decoded.containsKey('results')) {
-        return decoded['results'] as List<dynamic>;
+      return decoded['results'] as List<dynamic>;
     }
     if (decoded is List) return decoded;
     return [];
   }
 
+  /// Создать товар (JSON, без файла)
   static Future<Map<String, dynamic>> createProduct({
     required String title,
     required String price,
@@ -259,13 +280,17 @@ class ApiService {
       'title': title,
       'price': price,
     };
-    if (weightKg != null && weightKg.isNotEmpty) body['weight_kg'] = weightKg;
+    if (weightKg != null && weightKg.isNotEmpty) {
+      body['weight_kg'] = weightKg;
+    }
     if (description != null && description.isNotEmpty) {
       body['description'] = description;
     }
     if (categoryId != null) body['category'] = categoryId;
     if (quantity != null) body['quantity'] = quantity;
-    if (imageUrl != null && imageUrl.isNotEmpty) body['image'] = imageUrl;
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      body['image'] = imageUrl;
+    }
 
     final response = await _send(
       () => http.post(
@@ -279,6 +304,55 @@ class ApiService {
     );
     _ensureSuccess(response);
     return _decodeMap(response);
+  }
+
+  /// Создать товар с файлом (multipart/form-data)
+  static Future<Map<String, dynamic>> createProductWithImage({
+    required String title,
+    required String price,
+    String? weightKg,
+    String? description,
+    int? categoryId,
+    int? quantity,
+    File? imageFile,
+  }) async {
+    final token = await getToken();
+    final uri = Uri.parse('$baseUrl/products/');
+    final request = http.MultipartRequest('POST', uri);
+
+    request.headers['Authorization'] = 'Bearer $token';
+    request.fields['title'] = title;
+    request.fields['price'] = price;
+    if (weightKg != null && weightKg.isNotEmpty) {
+      request.fields['weight_kg'] = weightKg;
+    }
+    if (description != null && description.isNotEmpty) {
+      request.fields['description'] = description;
+    }
+    if (categoryId != null) {
+      request.fields['category'] = categoryId.toString();
+    }
+    if (quantity != null) {
+      request.fields['quantity'] = quantity.toString();
+    }
+    if (imageFile != null) {
+      request.files.add(await http.MultipartFile.fromPath(
+        'image',
+        imageFile.path,
+      ));
+    }
+
+    try {
+      final streamed = await request.send().timeout(
+          const Duration(seconds: 30));
+      final response = await http.Response.fromStream(streamed);
+      _ensureSuccess(response);
+      return _decodeMap(response);
+    } on TimeoutException {
+      throw ApiException('Превышено время загрузки файла');
+    } catch (e) {
+      throw ApiException('Ошибка загрузки: $e');
+    }
   }
 
   // ── Routing ────────────────────────────────────────────────────
@@ -298,7 +372,9 @@ class ApiService {
       'road_quality': roadQuality,
     };
     if (fuelPrice != null) payload['fuel_price'] = fuelPrice;
-    if (fuelConsumption != null) payload['fuel_consumption'] = fuelConsumption;
+    if (fuelConsumption != null) {
+      payload['fuel_consumption'] = fuelConsumption;
+    }
 
     final response = await _send(
       () => http.post(
@@ -363,7 +439,8 @@ class ApiService {
 
   // ── Likes & Reviews ────────────────────────────────────────────
 
-  static Future<Map<String, dynamic>> toggleLike(int productId) async {
+  static Future<Map<String, dynamic>> toggleLike(
+      int productId) async {
     final token = await getToken();
     final response = await _send(
       () => http.post(
