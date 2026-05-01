@@ -127,6 +127,24 @@ class ApiService {
     return _decodeMap(response);
   }
 
+  static Future<Map<String, dynamic>> updateProfile({
+    String? firstName,
+    String? phone,
+  }) async {
+    final token = await getToken();
+    final body = <String, dynamic>{};
+    if (firstName != null) body['first_name'] = firstName;
+    if (phone != null) body['phone'] = phone;
+    final response = await _send(
+      () => http.patch(Uri.parse('$baseUrl/accounts/me/'),
+          headers: {'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token'},
+          body: jsonEncode(body)),
+    );
+    _ensureSuccess(response);
+    return _decodeMap(response);
+  }
+
   static Future<Map<String, dynamic>> changeRole(String role) async {
     final token = await getToken();
     final response = await _send(
@@ -440,6 +458,19 @@ class ApiService {
   }
 
   // Likes & Reviews
+  static Future<Map<String, dynamic>> getLikeStatus(int productId) async {
+    final token = await getToken();
+    final response = await _send(
+      () => http.get(Uri.parse('$baseUrl/products/$productId/likes/'),
+          headers: {
+            'Content-Type': 'application/json',
+            if (token != null) 'Authorization': 'Bearer $token',
+          }),
+    );
+    _ensureSuccess(response);
+    return _decodeMap(response);
+  }
+
   static Future<Map<String, dynamic>> toggleLike(int productId) async {
     final token = await getToken();
     final response = await _send(
@@ -469,6 +500,56 @@ class ApiService {
     );
     _ensureSuccess(response);
     return _decodeMap(response);
+  }
+
+  static Future<void> deleteReview(int reviewId) async {
+    final token = await getToken();
+    final response = await _send(
+      () => http.delete(Uri.parse('$baseUrl/reviews/$reviewId/'),
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'}),
+    );
+    if (response.statusCode != 204 && response.statusCode != 200) {
+      throw ApiException('Ошибка удаления отзыва');
+    }
+  }
+
+   static Future<Map<String, dynamic>> updateReview(
+        int reviewId, int rating, String text) async {
+    final token = await getToken();
+    final response = await _send(
+        () => http.patch(Uri.parse('$baseUrl/reviews/$reviewId/edit/'),  // ← /edit/
+            headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+            body: jsonEncode({'rating': rating, 'text': text})),
+    ); 
+    _ensureSuccess(response);
+    return _decodeMap(response);
+    }
+
+  static Future<List<dynamic>> getLikedProducts() async {
+    final token = await getToken();
+    final response = await _send(
+        () => http.get(Uri.parse('$baseUrl/liked-products/'),  // ← изменили
+            headers: {'Content-Type': 'application/json', 
+                    'Authorization': 'Bearer $token'}),
+    );
+    _ensureSuccess(response);
+    final decoded = _decodeBody(response);
+    if (decoded is List) return decoded;
+    if (decoded is Map && decoded.containsKey('results')) 
+        return decoded['results'] as List<dynamic>;
+    return [];
+    }
+
+  static Future<void> deleteAccount() async {
+    final token = await getToken();
+    final response = await _send(
+      () => http.delete(Uri.parse('$baseUrl/accounts/me/'),
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'}),
+    );
+    if (response.statusCode != 204 && response.statusCode != 200) {
+      throw ApiException('Ошибка удаления аккаунта');
+    }
+    await clearToken();
   }
 }
 

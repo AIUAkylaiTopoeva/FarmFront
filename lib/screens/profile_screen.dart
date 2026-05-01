@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../services/api_service.dart';
 import 'login_screen.dart';
 import 'farmer_profile_edit_screen.dart';
+import 'customer_profile_edit_screen.dart';
+import 'liked_products_screen.dart';
 import 'order_history_screen.dart';
 import 'home_screen.dart';
 import 'farmer_home_screen.dart';
@@ -13,6 +16,49 @@ class ProfileScreen extends StatelessWidget {
 
   static const _green = Color(0xFF1C4A2A);
   static const _lightGreen = Color(0xFF81C784);
+
+  void _showDeleteAccountDialog(BuildContext context, AuthProvider auth) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Удалить аккаунт?',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.red)),
+        content: const Text(
+          'Все ваши данные, заказы и отзывы будут удалены навсегда. Это действие нельзя отменить.',
+          style: TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context),
+              child: const Text('Отмена')),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              try {
+                await ApiService.deleteAccount();
+                await auth.logout();
+                if (context.mounted) {
+                  Navigator.pushAndRemoveUntil(context,
+                      MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      (_) => false);
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Ошибка: $e'), backgroundColor: Colors.red));
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red, foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Да, удалить'),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _goToRoleHome(BuildContext context, String role) {
     Widget nextScreen;
@@ -228,27 +274,28 @@ class ProfileScreen extends StatelessWidget {
                             : 'Данные аккаунта',
                         onTap: () {
                           if (auth.role == 'farmer') {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const FarmerProfileEditScreen(),
-                              ),
-                            );
+                            Navigator.push(context, MaterialPageRoute(
+                              builder: (_) => const FarmerProfileEditScreen()));
+                          } else {
+                            Navigator.push(context, MaterialPageRoute(
+                              builder: (_) => const CustomerProfileEditScreen()));
                           }
                         },
                       ),
+                      if (auth.role == 'customer')
+                        _menuItem(
+                          Icons.favorite_outline,
+                          'Понравившиеся товары',
+                          'Товары которые вы лайкнули',
+                          onTap: () => Navigator.push(context, MaterialPageRoute(
+                              builder: (_) => const LikedProductsScreen())),
+                        ),
                       _menuItem(
                         Icons.receipt_long_outlined,
                         'История заказов',
                         'Посмотреть мои заказы',
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const OrderHistoryScreen(),
-                            ),
-                          );
-                        },
+                        onTap: () => Navigator.push(context, MaterialPageRoute(
+                            builder: (_) => const OrderHistoryScreen())),
                       ),
                     ]),
                     const SizedBox(height: 12),
@@ -266,13 +313,9 @@ class ProfileScreen extends StatelessWidget {
                         onPressed: () async {
                           await context.read<AuthProvider>().logout();
                           if (context.mounted) {
-                            Navigator.pushAndRemoveUntil(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const LoginScreen(),
-                              ),
-                              (_) => false,
-                            );
+                            Navigator.pushAndRemoveUntil(context,
+                                MaterialPageRoute(builder: (_) => const LoginScreen()),
+                                (_) => false);
                           }
                         },
                         icon: const Icon(Icons.logout_rounded, size: 16),
@@ -281,10 +324,17 @@ class ProfileScreen extends StatelessWidget {
                           foregroundColor: const Color(0xFFC62828),
                           side: const BorderSide(color: Color(0xFFFFCDD2)),
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: () => _showDeleteAccountDialog(context, auth),
+                        child: const Text('Удалить аккаунт',
+                            style: TextStyle(color: Color(0xFFAAAAAA), fontSize: 12)),
                       ),
                     ),
                   ],
