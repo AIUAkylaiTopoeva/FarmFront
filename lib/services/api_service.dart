@@ -11,11 +11,11 @@ class ApiService {
 
   static String get baseUrl {
     if (_envBaseUrl.isNotEmpty) return _envBaseUrl;
-    if (kIsWeb) return 'http://127.0.0.1:8000/api';
+    if (kIsWeb) return 'https://farm-production-8c2c.up.railway.app/api';
     if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:8000/api';
+      return 'https://farm-production-8c2c.up.railway.app/api';
     }
-    return 'http://127.0.0.1:8000/api';
+    return 'https://farm-production-8c2c.up.railway.app/api';
   }
 
   static Future<http.Response> _request(
