@@ -46,7 +46,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _register() async {
-    // Валидация общих полей
     if (_emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
         _confirmController.text.isEmpty) {
@@ -62,7 +61,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    // Валидация полей фермера
     if (_role == 'farmer') {
       if (_farmNameController.text.isEmpty) {
         setState(() => _error = 'Введите название фермы');
@@ -95,45 +93,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _role,
       );
 
-      if (mounted) {
-        if (data.containsKey('email')) {
-          // Если фермер — сразу сохраняем данные фермы
-          if (_role == 'farmer') {
-            final loginData = await ApiService.login(
-              _emailController.text.trim(),
-              _passwordController.text.trim(),
-            );
-            if (loginData.containsKey('access')) {
-              await ApiService.saveToken(loginData['access']);
-              await ApiService.updateFarmerProfile(
-                farmName: _farmNameController.text.trim(),
-                address: _addressController.text.trim(),
-                lat: double.tryParse(_latController.text),
-                lon: double.tryParse(_lonController.text),
-              );
-            }
-          }
+      if (!mounted) return;
 
+      if (data.containsKey('email')) {
+        
+
+        // Показываем сообщение и возвращаемся на логин
+        if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Аккаунт создан! Войдите в систему.'),
-              backgroundColor: Color(0xFF1C4A2A),
+            SnackBar(
+              content: Text(
+                'Аккаунт создан! Проверьте email ${_emailController.text.trim()} и нажмите кнопку подтверждения в письме',
+              ),
+              backgroundColor: const Color(0xFF1C4A2A),
+              duration: const Duration(seconds: 6),
             ),
           );
           Navigator.pop(context);
-        } else {
-          // Показываем ошибку от сервера
-          final errorMsg = data.values.first;
-          setState(() => _error = errorMsg is List
-              ? errorMsg.first.toString()
-              : errorMsg.toString());
         }
+      } else {
+        final errorMsg = data.values.first;
+        setState(() => _error = errorMsg is List
+            ? errorMsg.first.toString()
+            : errorMsg.toString());
       }
     } catch (e) {
       setState(() => _error = 'Ошибка соединения с сервером');
     }
 
-    setState(() => _isLoading = false);
+    if (mounted) setState(() => _isLoading = false);
   }
 
   @override
@@ -144,7 +132,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         child: SingleChildScrollView(
           child: Column(
             children: [
-              // Шапка
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(8, 16, 24, 28),
@@ -169,22 +156,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Регистрация',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
+                          Text('Регистрация',
+                              style: TextStyle(
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white)),
                           SizedBox(height: 4),
-                          Text(
-                            'Создайте аккаунт для начала работы',
-                            style: TextStyle(
-                              color: _lightGreen,
-                              fontSize: 13,
-                            ),
-                          ),
+                          Text('Создайте аккаунт для начала работы',
+                              style: TextStyle(
+                                  color: _lightGreen, fontSize: 13)),
                         ],
                       ),
                     ),
@@ -198,27 +178,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 4),
-
-                    // Выбор роли
                     _fieldLabel('КТО ВЫ?'),
                     const SizedBox(height: 8),
                     Row(
                       children: [
                         Expanded(
                           child: GestureDetector(
-                            onTap: () =>
-                                setState(() => _role = 'customer'),
+                            onTap: () => setState(() => _role = 'customer'),
                             child: AnimatedContainer(
-                              duration:
-                                  const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 14),
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                               decoration: BoxDecoration(
-                                color: _role == 'customer'
-                                    ? _green
-                                    : Colors.white,
-                                borderRadius:
-                                    BorderRadius.circular(12),
+                                color: _role == 'customer' ? _green : Colors.white,
+                                borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: _role == 'customer'
                                       ? _green
@@ -227,34 +199,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                               child: Column(
                                 children: [
-                                  Icon(
-                                    Icons.person_outline_rounded,
-                                    color: _role == 'customer'
-                                        ? Colors.white
-                                        : const Color(0xFF888888),
-                                    size: 26,
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'Покупатель',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
+                                  Icon(Icons.person_outline_rounded,
                                       color: _role == 'customer'
                                           ? Colors.white
-                                          : const Color(0xFF555555),
-                                    ),
-                                  ),
+                                          : const Color(0xFF888888),
+                                      size: 26),
+                                  const SizedBox(height: 6),
+                                  Text('Покупатель',
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: _role == 'customer'
+                                              ? Colors.white
+                                              : const Color(0xFF555555))),
                                   const SizedBox(height: 2),
-                                  Text(
-                                    'Покупаю продукты',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: _role == 'customer'
-                                          ? _lightGreen
-                                          : const Color(0xFFAAAAAA),
-                                    ),
-                                  ),
+                                  Text('Покупаю продукты',
+                                      style: TextStyle(
+                                          fontSize: 10,
+                                          color: _role == 'customer'
+                                              ? _lightGreen
+                                              : const Color(0xFFAAAAAA))),
                                 ],
                               ),
                             ),
@@ -263,19 +227,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: GestureDetector(
-                            onTap: () =>
-                                setState(() => _role = 'farmer'),
+                            onTap: () => setState(() => _role = 'farmer'),
                             child: AnimatedContainer(
-                              duration:
-                                  const Duration(milliseconds: 200),
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 14),
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
                               decoration: BoxDecoration(
-                                color: _role == 'farmer'
-                                    ? _green
-                                    : Colors.white,
-                                borderRadius:
-                                    BorderRadius.circular(12),
+                                color: _role == 'farmer' ? _green : Colors.white,
+                                borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: _role == 'farmer'
                                       ? _green
@@ -284,34 +242,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                               child: Column(
                                 children: [
-                                  Icon(
-                                    Icons.agriculture_outlined,
-                                    color: _role == 'farmer'
-                                        ? Colors.white
-                                        : const Color(0xFF888888),
-                                    size: 26,
-                                  ),
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'Фермер',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600,
+                                  Icon(Icons.agriculture_outlined,
                                       color: _role == 'farmer'
                                           ? Colors.white
-                                          : const Color(0xFF555555),
-                                    ),
-                                  ),
+                                          : const Color(0xFF888888),
+                                      size: 26),
+                                  const SizedBox(height: 6),
+                                  Text('Фермер',
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: _role == 'farmer'
+                                              ? Colors.white
+                                              : const Color(0xFF555555))),
                                   const SizedBox(height: 2),
-                                  Text(
-                                    'Продаю продукты',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: _role == 'farmer'
-                                          ? _lightGreen
-                                          : const Color(0xFFAAAAAA),
-                                    ),
-                                  ),
+                                  Text('Продаю продукты',
+                                      style: TextStyle(
+                                          fontSize: 10,
+                                          color: _role == 'farmer'
+                                              ? _lightGreen
+                                              : const Color(0xFFAAAAAA))),
                                 ],
                               ),
                             ),
@@ -321,8 +271,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
 
                     const SizedBox(height: 20),
-
-                    // Email
                     _fieldLabel('EMAIL *'),
                     const SizedBox(height: 6),
                     _inputField(
@@ -333,8 +281,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ),
 
                     const SizedBox(height: 14),
-
-                    // Пароль
                     _fieldLabel('ПАРОЛЬ *'),
                     const SizedBox(height: 6),
                     _inputField(
@@ -342,13 +288,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       hint: 'Минимум 6 символов',
                       icon: Icons.lock_outline,
                       obscure: _obscure,
-                      onToggle: () =>
-                          setState(() => _obscure = !_obscure),
+                      onToggle: () => setState(() => _obscure = !_obscure),
                     ),
 
                     const SizedBox(height: 14),
-
-                    // Подтверждение пароля
                     _fieldLabel('ПОДТВЕРДИТЕ ПАРОЛЬ *'),
                     const SizedBox(height: 6),
                     _inputField(
@@ -356,47 +299,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       hint: 'Повторите пароль',
                       icon: Icons.lock_outline,
                       obscure: _obscureConfirm,
-                      onToggle: () => setState(
-                          () => _obscureConfirm = !_obscureConfirm),
+                      onToggle: () =>
+                          setState(() => _obscureConfirm = !_obscureConfirm),
                     ),
 
-                    // Поля для фермера
                     if (_role == 'farmer') ...[
                       const SizedBox(height: 20),
-
-                      // Разделитель
                       Row(
                         children: [
-                          const Expanded(
-                              child:
-                                  Divider(color: Color(0xFFE0E0E0))),
+                          const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
                           Container(
-                            margin: const EdgeInsets.symmetric(
-                                horizontal: 10),
+                            margin: const EdgeInsets.symmetric(horizontal: 10),
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
                               color: const Color(0xFFE8F5E9),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text(
-                              'Данные фермы',
-                              style: TextStyle(
-                                fontSize: 11,
-                                color: _green,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            child: const Text('Данные фермы',
+                                style: TextStyle(
+                                    fontSize: 11,
+                                    color: _green,
+                                    fontWeight: FontWeight.w600)),
                           ),
-                          const Expanded(
-                              child:
-                                  Divider(color: Color(0xFFE0E0E0))),
+                          const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
                         ],
                       ),
-
                       const SizedBox(height: 14),
 
-                      // Название фермы
                       _fieldLabel('НАЗВАНИЕ ФЕРМЫ *'),
                       const SizedBox(height: 6),
                       _inputField(
@@ -406,8 +336,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
 
                       const SizedBox(height: 14),
-
-                      // Адрес
                       _fieldLabel('АДРЕС ФЕРМЫ *'),
                       const SizedBox(height: 6),
                       _inputField(
@@ -417,8 +345,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
 
                       const SizedBox(height: 14),
-
-                      // Координаты
                       _fieldLabel('КООРДИНАТЫ ФЕРМЫ *'),
                       const SizedBox(height: 6),
                       Container(
@@ -429,14 +355,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.info_outline,
-                                color: _green, size: 14),
+                            Icon(Icons.info_outline, color: _green, size: 14),
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                'Найдите координаты фермы на maps.google.com → нажмите на точку → скопируйте числа',
-                                style: TextStyle(
-                                    fontSize: 11, color: _green),
+                                'Найдите координаты на maps.google.com → нажмите на точку → скопируйте числа',
+                                style: TextStyle(fontSize: 11, color: _green),
                               ),
                             ),
                           ],
@@ -466,15 +390,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
 
                       const SizedBox(height: 12),
-
-                      // Уведомление о верификации
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFFF8E1),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                              color: const Color(0xFFFFE082)),
+                          border: Border.all(color: const Color(0xFFFFE082)),
                         ),
                         child: const Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -486,9 +407,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               child: Text(
                                 'После регистрации администратор проверит данные и верифицирует вашу ферму. Это занимает до 24 часов.',
                                 style: TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFFF57F17),
-                                ),
+                                    fontSize: 11, color: Color(0xFFF57F17)),
                               ),
                             ),
                           ],
@@ -496,7 +415,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ],
 
-                    // Ошибка
                     if (_error.isNotEmpty) ...[
                       const SizedBox(height: 14),
                       Container(
@@ -504,8 +422,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         decoration: BoxDecoration(
                           color: const Color(0xFFFFEBEE),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                              color: const Color(0xFFFFCDD2)),
+                          border: Border.all(color: const Color(0xFFFFCDD2)),
                         ),
                         child: Row(
                           children: [
@@ -513,13 +430,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 color: Color(0xFFC62828), size: 16),
                             const SizedBox(width: 8),
                             Expanded(
-                              child: Text(
-                                _error,
-                                style: const TextStyle(
-                                  color: Color(0xFFC62828),
-                                  fontSize: 12,
-                                ),
-                              ),
+                              child: Text(_error,
+                                  style: const TextStyle(
+                                      color: Color(0xFFC62828), fontSize: 12)),
                             ),
                           ],
                         ),
@@ -527,8 +440,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     ],
 
                     const SizedBox(height: 24),
-
-                    // Кнопка
                     SizedBox(
                       width: double.infinity,
                       height: 52,
@@ -538,8 +449,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           backgroundColor: _green,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
-                          ),
+                              borderRadius: BorderRadius.circular(14)),
                           elevation: 0,
                         ),
                         child: _isLoading
@@ -547,36 +457,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 width: 20,
                                 height: 20,
                                 child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text(
-                                'Создать аккаунт',
+                                    color: Colors.white, strokeWidth: 2))
+                            : const Text('Создать аккаунт',
                                 style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
+                                    fontSize: 15, fontWeight: FontWeight.w600)),
                       ),
                     ),
 
                     const SizedBox(height: 16),
-
                     Center(
                       child: TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: const Text(
-                          'Уже есть аккаунт? Войти',
-                          style: TextStyle(
-                            color: _green,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 13,
-                          ),
-                        ),
+                        child: const Text('Уже есть аккаунт? Войти',
+                            style: TextStyle(
+                                color: _green,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 13)),
                       ),
                     ),
-
                     const SizedBox(height: 16),
                   ],
                 ),
@@ -589,15 +487,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Widget _fieldLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 11,
-        fontWeight: FontWeight.w600,
-        color: Color(0xFF555555),
-        letterSpacing: 0.5,
-      ),
-    );
+    return Text(text,
+        style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF555555),
+            letterSpacing: 0.5));
   }
 
   Widget _inputField({
@@ -621,10 +516,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
         style: const TextStyle(fontSize: 14),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle:
-              const TextStyle(color: Color(0xFFBBBBBB)),
-          prefixIcon: Icon(icon,
-              color: const Color(0xFFAAAAAA), size: 20),
+          hintStyle: const TextStyle(color: Color(0xFFBBBBBB)),
+          prefixIcon:
+              Icon(icon, color: const Color(0xFFAAAAAA), size: 20),
           suffixIcon: onToggle != null
               ? IconButton(
                   icon: Icon(
@@ -638,8 +532,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 )
               : null,
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(
-              vertical: 14, horizontal: 16),
+          contentPadding:
+              const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
         ),
       ),
     );

@@ -636,7 +636,7 @@ class _HomeScreenState extends State<HomeScreen>
                           height: 130,
                           width: double.infinity,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, _) =>
+                          errorBuilder: (_, _, _) =>
                               _placeholder(130),
                         )
                       : _placeholder(130),

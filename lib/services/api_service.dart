@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
@@ -23,11 +23,9 @@ class ApiService {
     try {
       return await request().timeout(const Duration(seconds: 15));
     } on TimeoutException {
-      throw ApiException(
-          'Сервер не ответил вовремя. API: $baseUrl');
+      throw ApiException('Сервер не ответил вовремя. API: $baseUrl');
     } on http.ClientException {
-      throw ApiException(
-          'Нет соединения с сервером. API: $baseUrl');
+      throw ApiException('Нет соединения с сервером. API: $baseUrl');
     } on Exception catch (e) {
       throw ApiException('Сетевая ошибка: $e');
     }
@@ -57,14 +55,12 @@ class ApiService {
   static void _ensureSuccess(http.Response response) {
     if (response.statusCode < 200 || response.statusCode >= 300) {
       final body = _decodeMap(response);
-      final detail =
-          body['detail']?.toString() ?? 'Ошибка сервера';
+      final detail = body['detail']?.toString() ?? 'Ошибка сервера';
       throw ApiException(detail, response.statusCode);
     }
   }
 
-  // ── Token ──────────────────────────────────────────────────────
-
+  // Token
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('access_token');
@@ -80,59 +76,42 @@ class ApiService {
     await prefs.remove('access_token');
   }
 
-  // ── Auth ───────────────────────────────────────────────────────
-
-  static Future<Map<String, dynamic>> login(
-      String email, String password) async {
+  // Auth
+  static Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await _send(
-      () => http.post(
-        Uri.parse('$baseUrl/accounts/login/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
-      ),
+      () => http.post(Uri.parse('$baseUrl/accounts/login/'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email, 'password': password})),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
   }
 
-  static Future<Map<String, dynamic>> register(
-      String email, String password, String role) async {
+  static Future<Map<String, dynamic>> register(String email, String password, String role) async {
     final response = await _send(
-      () => http.post(
-        Uri.parse('$baseUrl/accounts/register/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'password': password,
-          'role': role,
-        }),
-      ),
+      () => http.post(Uri.parse('$baseUrl/accounts/register/'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email, 'password': password, 'role': role})),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
   }
 
-  static Future<Map<String, dynamic>> verifyEmail(
-      String email, String code) async {
+  static Future<Map<String, dynamic>> verifyEmail(String email, String code) async {
     final response = await _send(
-      () => http.post(
-        Uri.parse('$baseUrl/accounts/verify/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'code': code}),
-      ),
+      () => http.post(Uri.parse('$baseUrl/accounts/verify/'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email, 'code': code})),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
   }
 
-  static Future<Map<String, dynamic>> resendCode(
-      String email) async {
+  static Future<Map<String, dynamic>> resendCode(String email) async {
     final response = await _send(
-      () => http.post(
-        Uri.parse('$baseUrl/accounts/resend-code/'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email}),
-      ),
+      () => http.post(Uri.parse('$baseUrl/accounts/resend-code/'),
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({'email': email})),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
@@ -141,57 +120,37 @@ class ApiService {
   static Future<Map<String, dynamic>> getMe() async {
     final token = await getToken();
     final response = await _send(
-      () => http.get(
-        Uri.parse('$baseUrl/accounts/me/'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      ),
+      () => http.get(Uri.parse('$baseUrl/accounts/me/'),
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'}),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
   }
 
-  static Future<Map<String, dynamic>> changeRole(
-      String role) async {
+  static Future<Map<String, dynamic>> changeRole(String role) async {
     final token = await getToken();
     final response = await _send(
-      () => http.patch(
-        Uri.parse('$baseUrl/accounts/change-role/'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({'role': role}),
-      ),
+      () => http.patch(Uri.parse('$baseUrl/accounts/change-role/'),
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+          body: jsonEncode({'role': role})),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
   }
 
-  // ── Farmer Profile ─────────────────────────────────────────────
-
+  // Farmer Profile
   static Future<Map<String, dynamic>> getFarmerProfile() async {
     final token = await getToken();
     final response = await _send(
-      () => http.get(
-        Uri.parse('$baseUrl/accounts/farmer/profile/'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      ),
+      () => http.get(Uri.parse('$baseUrl/accounts/farmer/profile/'),
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'}),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
   }
 
   static Future<Map<String, dynamic>> updateFarmerProfile({
-    String? farmName,
-    String? address,
-    double? lat,
-    double? lon,
+    String? farmName, String? address, double? lat, double? lon,
   }) async {
     final token = await getToken();
     final body = <String, dynamic>{};
@@ -199,114 +158,106 @@ class ApiService {
     if (address != null) body['address'] = address;
     if (lat != null) body['lat'] = lat;
     if (lon != null) body['lon'] = lon;
-
     final response = await _send(
-      () => http.patch(
-        Uri.parse('$baseUrl/accounts/farmer/profile/'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(body),
-      ),
+      () => http.patch(Uri.parse('$baseUrl/accounts/farmer/profile/'),
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+          body: jsonEncode(body)),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
   }
 
-  // ── Farmers Map ────────────────────────────────────────────────
-
-  /// Возвращает список всех ферм с координатами для карты
+  // Farmers Map
   static Future<List<dynamic>> getFarmersMap() async {
     final token = await getToken();
     final response = await _send(
-      () => http.get(
-        Uri.parse('$baseUrl/accounts/farmers/map/'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-      ),
+      () => http.get(Uri.parse('$baseUrl/accounts/farmers/map/'),
+          headers: {
+            'Content-Type': 'application/json',
+            if (token != null) 'Authorization': 'Bearer $token',
+          }),
     );
     _ensureSuccess(response);
     return _decodeList(response);
   }
 
-  // ── Products ───────────────────────────────────────────────────
+  // Admin Users
+  static Future<List<dynamic>> getAdminUsers() async {
+    final token = await getToken();
+    final response = await _send(
+      () => http.get(Uri.parse('$baseUrl/accounts/users/'),
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'}),
+    );
+    if (response.statusCode == 404 || response.statusCode == 403) return [];
+    _ensureSuccess(response);
+    final decoded = _decodeBody(response);
+    if (decoded is List) return decoded;
+    if (decoded is Map && decoded.containsKey('results')) return decoded['results'] as List<dynamic>;
+    return [];
+  }
 
+  // Categories
   static Future<List<dynamic>> getCategories() async {
     final response = await _send(
-      () => http.get(
-        Uri.parse('$baseUrl/categories/'),
-        headers: {'Content-Type': 'application/json'},
-      ),
+      () => http.get(Uri.parse('$baseUrl/categories/'),
+          headers: {'Content-Type': 'application/json'}),
     );
     _ensureSuccess(response);
     return _decodeList(response);
   }
 
+  // Products
   static Future<List<dynamic>> getProducts() async {
     final token = await getToken();
     final response = await _send(
-      () => http.get(
-        Uri.parse('$baseUrl/products/'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
-      ),
+      () => http.get(Uri.parse('$baseUrl/products/'),
+          headers: {
+            'Content-Type': 'application/json',
+            if (token != null) 'Authorization': 'Bearer $token',
+          }),
     );
     _ensureSuccess(response);
     final decoded = _decodeBody(response);
-    if (decoded is Map && decoded.containsKey('results')) {
-      return decoded['results'] as List<dynamic>;
-    }
+    if (decoded is Map && decoded.containsKey('results')) return decoded['results'] as List<dynamic>;
     if (decoded is List) return decoded;
     return [];
   }
 
-  /// Создать товар (JSON, без файла)
+  static Future<List<dynamic>> getMyProducts() async {
+    final token = await getToken();
+    final response = await _send(
+      () => http.get(Uri.parse('$baseUrl/products/my/'),
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'}),
+    );
+    _ensureSuccess(response);
+    final decoded = _decodeBody(response);
+    if (decoded is Map && decoded.containsKey('results')) return decoded['results'] as List<dynamic>;
+    if (decoded is List) return decoded;
+    return [];
+  }
+
   static Future<Map<String, dynamic>> createProduct({
-    required String title,
-    required String price,
-    String? weightKg,
-    String? description,
-    int? categoryId,
-    int? quantity,
-    String? imageUrl,
+    required String title, required String price,
+    String? weightKg, String? description,
+    int? categoryId, int? quantity, String? imageUrl,
   }) async {
     final token = await getToken();
-    final body = <String, dynamic>{
-      'title': title,
-      'price': price,
-    };
-    if (weightKg != null && weightKg.isNotEmpty) {
-      body['weight_kg'] = weightKg;
-    }
-    if (description != null && description.isNotEmpty) {
-      body['description'] = description;
-    }
+    final body = <String, dynamic>{'title': title, 'price': price};
+    if (weightKg != null && weightKg.isNotEmpty) body['weight_kg'] = weightKg;
+    if (description != null && description.isNotEmpty) body['description'] = description;
     if (categoryId != null) body['category'] = categoryId;
     if (quantity != null) body['quantity'] = quantity;
-    if (imageUrl != null && imageUrl.isNotEmpty) {
-      body['image'] = imageUrl;
-    }
-
+    if (imageUrl != null && imageUrl.isNotEmpty) body['image'] = imageUrl;
     final response = await _send(
-      () => http.post(
-        Uri.parse('$baseUrl/products/'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode(body),
-      ),
+      () => http.post(Uri.parse('$baseUrl/products/'),
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+          body: jsonEncode(body)),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
   }
 
-  /// Создать товар с файлом (multipart/form-data)
+  /// Создать товар через multipart (всегда, с фото или без)
   static Future<Map<String, dynamic>> createProductWithImage({
     required String title,
     required String price,
@@ -314,12 +265,12 @@ class ApiService {
     String? description,
     int? categoryId,
     int? quantity,
-    File? imageFile,
+    XFile? imageXFile,
+    List<int>? imageBytes,
   }) async {
     final token = await getToken();
     final uri = Uri.parse('$baseUrl/products/');
     final request = http.MultipartRequest('POST', uri);
-
     request.headers['Authorization'] = 'Bearer $token';
     request.fields['title'] = title;
     request.fields['price'] = price;
@@ -329,22 +280,20 @@ class ApiService {
     if (description != null && description.isNotEmpty) {
       request.fields['description'] = description;
     }
-    if (categoryId != null) {
-      request.fields['category'] = categoryId.toString();
-    }
-    if (quantity != null) {
-      request.fields['quantity'] = quantity.toString();
-    }
-    if (imageFile != null) {
-      request.files.add(await http.MultipartFile.fromPath(
+    if (categoryId != null) request.fields['category'] = categoryId.toString();
+    if (quantity != null) request.fields['quantity'] = quantity.toString();
+
+    // Добавляем фото только если есть байты
+    if (imageXFile != null && imageBytes != null && imageBytes.isNotEmpty) {
+      request.files.add(http.MultipartFile.fromBytes(
         'image',
-        imageFile.path,
+        imageBytes,
+        filename: imageXFile.name.isNotEmpty ? imageXFile.name : 'photo.jpg',
       ));
     }
 
     try {
-      final streamed = await request.send().timeout(
-          const Duration(seconds: 30));
+      final streamed = await request.send().timeout(const Duration(seconds: 30));
       final response = await http.Response.fromStream(streamed);
       _ensureSuccess(response);
       return _decodeMap(response);
@@ -355,15 +304,47 @@ class ApiService {
     }
   }
 
-  // ── Routing ────────────────────────────────────────────────────
+  static Future<Map<String, dynamic>> updateProduct(
+    int productId, {
+    String? title, String? price, String? weightKg,
+    String? description, bool? isActive,
+  }) async {
+    final token = await getToken();
+    final body = <String, dynamic>{};
+    if (title != null && title.isNotEmpty) body['title'] = title;
+    if (price != null && price.isNotEmpty) body['price'] = price;
+    if (weightKg != null) body['weight_kg'] = weightKg;
+    if (description != null) body['description'] = description;
+    if (isActive != null) body['is_active'] = isActive;
+    final response = await _send(
+      () => http.patch(Uri.parse('$baseUrl/products/$productId/'),
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+          body: jsonEncode(body)),
+    );
+    _ensureSuccess(response);
+    return _decodeMap(response);
+  }
 
+  static Future<void> deleteProduct(int productId) async {
+    final token = await getToken();
+    final response = await _send(
+      () => http.delete(Uri.parse('$baseUrl/products/$productId/'),
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'}),
+    );
+    if (response.statusCode != 204 && response.statusCode != 200) {
+      final body = _decodeMap(response);
+      throw ApiException(body['detail']?.toString() ?? 'Ошибка удаления');
+    }
+  }
+
+  static Future<void> adminToggleProduct(int productId, bool isActive) async {
+    await updateProduct(productId, isActive: isActive);
+  }
+
+  // Routing
   static Future<Map<String, dynamic>> compareRoutes(
-    List<int> productIds,
-    double startLat,
-    double startLon, {
-    double? fuelPrice,
-    double? fuelConsumption,
-    String roadQuality = 'medium',
+    List<int> productIds, double startLat, double startLon, {
+    double? fuelPrice, double? fuelConsumption, String roadQuality = 'medium',
   }) async {
     final token = await getToken();
     final payload = <String, dynamic>{
@@ -372,84 +353,98 @@ class ApiService {
       'road_quality': roadQuality,
     };
     if (fuelPrice != null) payload['fuel_price'] = fuelPrice;
-    if (fuelConsumption != null) {
-      payload['fuel_consumption'] = fuelConsumption;
-    }
+    if (fuelConsumption != null) payload['fuel_consumption'] = fuelConsumption;
 
-    final response = await _send(
-      () => http.post(
+    try {
+      // Таймаут 90 секунд — OSRM + OR-Tools долго считают
+      final response = await http.post(
         Uri.parse('$baseUrl/routing/compare/'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode(payload),
-      ),
-    );
-    _ensureSuccess(response);
-    return _decodeMap(response);
+      ).timeout(const Duration(seconds: 90));
+      _ensureSuccess(response);
+      return _decodeMap(response);
+    } on TimeoutException {
+      throw ApiException('Маршрут считается слишком долго. Попробуйте снова.');
+    } catch (e) {
+      if (e is ApiException) rethrow;
+      throw ApiException('Ошибка маршрута: $e');
+    }
   }
 
-  // ── Orders ─────────────────────────────────────────────────────
-
+  // Orders
   static Future<List<dynamic>> getOrders() async {
     final token = await getToken();
     final response = await _send(
-      () => http.get(
-        Uri.parse('$baseUrl/orders/'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      ),
+      () => http.get(Uri.parse('$baseUrl/orders/'),
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'}),
     );
     _ensureSuccess(response);
-    return _decodeList(response);
+    final decoded = _decodeBody(response);
+    if (decoded is List) return decoded;
+    if (decoded is Map && decoded.containsKey('results')) return decoded['results'] as List<dynamic>;
+    return [];
+  }
+
+  static Future<List<dynamic>> getFarmerOrders() async {
+    return getOrders();
+  }
+
+  static Future<List<dynamic>> getAdminOrders() async {
+    final token = await getToken();
+    final response = await _send(
+      () => http.get(Uri.parse('$baseUrl/orders/admin/'),
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'}),
+    );
+    if (response.statusCode == 404 || response.statusCode == 403) return getOrders();
+    _ensureSuccess(response);
+    final decoded = _decodeBody(response);
+    if (decoded is List) return decoded;
+    if (decoded is Map && decoded.containsKey('results')) return decoded['results'] as List<dynamic>;
+    return [];
+  }
+
+  static Future<void> updateOrderStatus(int orderId, String status) async {
+    final token = await getToken();
+    final response = await _send(
+      () => http.patch(Uri.parse('$baseUrl/orders/$orderId/status/'),
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+          body: jsonEncode({'status': status})),
+    );
+    _ensureSuccess(response);
   }
 
   static Future<Map<String, dynamic>> createOrder({
-    required String deliveryName,
-    required String deliveryAddress,
-    required String deliveryPhone,
-    String deliveryCity = 'Бишкек',
-    String? comment,
-    required List<Map<String, dynamic>> items,
+    required String deliveryName, required String deliveryAddress,
+    required String deliveryPhone, String deliveryCity = 'Бишкек',
+    String? comment, required List<Map<String, dynamic>> items,
   }) async {
     final token = await getToken();
     final response = await _send(
-      () => http.post(
-        Uri.parse('$baseUrl/orders/create/'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          'delivery_name': deliveryName,
-          'delivery_address': deliveryAddress,
-          'delivery_phone': deliveryPhone,
-          'delivery_city': deliveryCity,
-          'comment': comment ?? '',
-          'items': items,
-        }),
-      ),
+      () => http.post(Uri.parse('$baseUrl/orders/create/'),
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+          body: jsonEncode({
+            'delivery_name': deliveryName,
+            'delivery_address': deliveryAddress,
+            'delivery_phone': deliveryPhone,
+            'delivery_city': deliveryCity,
+            'comment': comment ?? '',
+            'items': items,
+          })),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
   }
 
-  // ── Likes & Reviews ────────────────────────────────────────────
-
-  static Future<Map<String, dynamic>> toggleLike(
-      int productId) async {
+  // Likes & Reviews
+  static Future<Map<String, dynamic>> toggleLike(int productId) async {
     final token = await getToken();
     final response = await _send(
-      () => http.post(
-        Uri.parse('$baseUrl/products/$productId/like/'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      ),
+      () => http.post(Uri.parse('$baseUrl/products/$productId/like/'),
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'}),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
@@ -457,10 +452,8 @@ class ApiService {
 
   static Future<List<dynamic>> getReviews(int productId) async {
     final response = await _send(
-      () => http.get(
-        Uri.parse('$baseUrl/products/$productId/reviews/'),
-        headers: {'Content-Type': 'application/json'},
-      ),
+      () => http.get(Uri.parse('$baseUrl/products/$productId/reviews/'),
+          headers: {'Content-Type': 'application/json'}),
     );
     _ensureSuccess(response);
     return _decodeList(response);
@@ -470,14 +463,9 @@ class ApiService {
       int productId, int rating, String text) async {
     final token = await getToken();
     final response = await _send(
-      () => http.post(
-        Uri.parse('$baseUrl/products/$productId/reviews/'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({'rating': rating, 'text': text}),
-      ),
+      () => http.post(Uri.parse('$baseUrl/products/$productId/reviews/'),
+          headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer $token'},
+          body: jsonEncode({'rating': rating, 'text': text})),
     );
     _ensureSuccess(response);
     return _decodeMap(response);
@@ -487,7 +475,6 @@ class ApiService {
 class ApiException implements Exception {
   final String message;
   final int? statusCode;
-
   const ApiException(this.message, [this.statusCode]);
 
   @override

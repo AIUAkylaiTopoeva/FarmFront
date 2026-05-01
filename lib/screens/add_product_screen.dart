@@ -1,4 +1,5 @@
-import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../services/api_service.dart';
@@ -24,7 +25,8 @@ class _AddProductScreenState extends State<AddProductScreen> {
   String _error = '';
   List<dynamic> _categories = [];
   int? _selectedCategoryId;
-  File? _pickedImage;
+  XFile? _pickedImage;
+  List<int>? _pickedImageBytes;
   final _picker = ImagePicker();
 
   @override
@@ -65,7 +67,13 @@ class _AddProductScreenState extends State<AddProductScreen> {
       imageQuality: 85,
     );
     if (picked != null) {
-      setState(() => _pickedImage = File(picked.path));
+      setState(() {
+        _pickedImage = XFile(picked.path);
+        _pickedImageBytes = null;
+      });
+      // Загружаем байты для отображения (работает и на вебе)
+      final bytes = await picked.readAsBytes();
+      setState(() => _pickedImageBytes = bytes);
     }
   }
 
@@ -157,35 +165,21 @@ class _AddProductScreenState extends State<AddProductScreen> {
     try {
       Map<String, dynamic> result;
 
-      if (_pickedImage != null) {
-        // Загрузка с файлом (multipart)
-        result = await ApiService.createProductWithImage(
-          title: _titleController.text.trim(),
-          price: _priceController.text.trim(),
-          weightKg: _weightController.text.trim().isEmpty
-              ? null
-              : _weightController.text.trim(),
-          description: _descriptionController.text.trim().isEmpty
-              ? null
-              : _descriptionController.text.trim(),
-          categoryId: _selectedCategoryId,
-          quantity: int.tryParse(_quantityController.text.trim()),
-          imageFile: _pickedImage,
-        );
-      } else {
-        result = await ApiService.createProduct(
-          title: _titleController.text.trim(),
-          price: _priceController.text.trim(),
-          weightKg: _weightController.text.trim().isEmpty
-              ? null
-              : _weightController.text.trim(),
-          description: _descriptionController.text.trim().isEmpty
-              ? null
-              : _descriptionController.text.trim(),
-          categoryId: _selectedCategoryId,
-          quantity: int.tryParse(_quantityController.text.trim()),
-        );
-      }
+      // Всегда используем multipart — работает и с фото и без
+      result = await ApiService.createProductWithImage(
+        title: _titleController.text.trim(),
+        price: _priceController.text.trim(),
+        weightKg: _weightController.text.trim().isEmpty
+            ? null
+            : _weightController.text.trim(),
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
+        categoryId: _selectedCategoryId,
+        quantity: int.tryParse(_quantityController.text.trim()),
+        imageXFile: _pickedImage,
+        imageBytes: _pickedImageBytes,
+      );
 
       if (result['id'] != null) {
         if (mounted) {
@@ -252,17 +246,20 @@ class _AddProductScreenState extends State<AddProductScreen> {
                               child: Stack(
                                 fit: StackFit.expand,
                                 children: [
-                                  Image.file(
-                                    _pickedImage!,
-                                    fit: BoxFit.cover,
-                                  ),
+                                  _pickedImageBytes != null
+                                      ? Image.memory(
+                                          Uint8List.fromList(_pickedImageBytes!),
+                                          fit: BoxFit.cover,
+                                        )
+                                      : const SizedBox.shrink(),
                                   Positioned(
                                     top: 8,
                                     right: 8,
                                     child: GestureDetector(
-                                      onTap: () => setState(
-                                          () => _pickedImage =
-                                              null),
+                                      onTap: () => setState(() {
+                                          _pickedImage = null;
+                                          _pickedImageBytes = null;
+                                        }),
                                       child: Container(
                                         width: 32,
                                         height: 32,

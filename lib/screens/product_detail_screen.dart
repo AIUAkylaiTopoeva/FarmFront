@@ -120,7 +120,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ? Image.network(
                       imageUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___)  =>
+                      errorBuilder: (_, _, _)  =>
                           _placeholder(280),
                     )
                   : _placeholder(280),
